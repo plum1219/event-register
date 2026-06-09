@@ -3,86 +3,102 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>イベントレジ 試作版 v3</title>
+  <title>イベントレジ 試作版 v4</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="app-header">
     <div>
       <p class="eyebrow">Doujin Event Register</p>
-      <h1>イベントレジ 試作版 v3</h1>
+      <h1>イベントレジ 試作版 v4</h1>
       <p class="lead">頒布物の在庫・売上・取り置き・会計を管理できるブラウザツールです。</p>
     </div>
-    <div class="header-actions">
-      <button id="exportBtn" class="secondary">データを書き出し</button>
-      <label class="import-label">データを読み込み<input id="importFile" type="file" accept="application/json"></label>
-      <button id="resetBtn" class="danger">リセット</button>
-    </div>
+    <nav class="mode-tabs" aria-label="表示切り替え">
+      <button class="tab-btn active" data-tab="event">イベント中</button>
+      <button class="tab-btn" data-tab="prep">事前準備</button>
+    </nav>
   </header>
 
   <main class="layout">
-    <section class="panel">
-      <div class="panel-head"><h2>サークル設定</h2></div>
-      <div class="form-grid settings-grid">
-        <label>サークル名<input id="circleName" type="text" placeholder="例：わくわく同人屋さん"></label>
-        <label>イベント名<input id="eventName" type="text" placeholder="例：COMIC CITY"></label>
-        <label>スペース番号<input id="spaceNo" type="text" placeholder="例：東1 A-12a"></label>
-      </div>
-    </section>
+    <section id="eventView" class="tab-view active">
+      <section class="stats-grid">
+        <article class="stat"><span>合計売上</span><strong id="totalSales">¥0</strong></article>
+        <article class="stat"><span>頒布した数</span><strong id="totalDistributed">0</strong></article>
+        <article class="stat"><span>未告知の完売</span><strong id="unsentSoldout">0</strong></article>
+        <article class="stat"><span>未受け渡しの取り置き</span><strong id="pendingReservations">0</strong></article>
+      </section>
 
-    <section class="panel">
-      <div class="panel-head">
-        <div>
-          <h2>商品登録</h2>
-          <p class="note">在庫総数には、通常頒布・取り置き用・通販用・自分用の確保分もすべて含めた数を入力してください。</p>
+      <section class="panel">
+        <div class="panel-head"><div><h2>在庫管理</h2><p>頒布したら「+1」をタップ。間違えたら「戻す」で在庫を1つ増やせます。</p></div></div>
+        <div id="items" class="items"></div>
+      </section>
+
+      <section class="panel register-panel">
+        <div class="panel-head">
+          <div><h2>レジ</h2><p>頒布する商品の数と、受け取ったお札・硬貨の枚数を入力してください。</p></div>
+          <div class="head-buttons">
+            <button id="applyCalcBtn" class="primary strong-action">在庫に反映して計算をクリア</button>
+            <button id="clearCalcBtn" class="secondary">計算をクリア</button>
+          </div>
         </div>
-      </div>
-      <form id="itemForm" class="form-grid item-form">
-        <label>商品名<input id="itemName" type="text" required placeholder="例：新刊「MECCHA HAPPY BOOK」"></label>
-        <label>価格<input id="itemPrice" type="number" min="0" step="100" inputmode="numeric" required placeholder="550"></label>
-        <label>在庫総数<input id="itemStock" type="number" min="0" step="1" required placeholder="30"></label>
-        <label>通販用に確保しておきたい部数<input id="itemReserveMail" type="number" min="0" step="1" value="0"></label>
-        <label>自分用<input id="itemReserveSelf" type="number" min="0" step="1" value="1"></label>
-        <label>アイコン<select id="itemIcon"><option value="📘">📘 本</option><option value="🎁">🎁 セット</option><option value="🖼️">🖼️ ポストカード</option><option value="✨">✨ グッズ</option><option value="🧸">🧸 ぬい</option><option value="📦">📦 その他</option></select></label>
-        <label>アイコン背景色<input id="itemColor" type="color" value="#f4eadc"></label>
-        <button type="submit" class="primary">商品を追加</button>
-      </form>
+        <div id="calcItems" class="calc-items"></div>
+        <div class="checkout-grid">
+          <article class="checkout-total"><span>頒布価格の合計</span><strong id="calcTotal">¥0</strong></article>
+          <article class="checkout-total"><span>受け取った額の合計</span><strong id="receivedTotal">¥0</strong></article>
+          <article class="checkout-total change"><span>おつり</span><strong id="changeTotal">¥0</strong></article>
+        </div>
+        <div class="cash-grid" id="cashGrid"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><div><h2>取り置きリスト</h2><p>受け渡し済みにするとグレーアウトして下に移動します。「会計へ」でレジに反映できます。</p></div></div>
+        <div id="reservations" class="reservations"></div>
+      </section>
     </section>
 
-    <section class="stats-grid">
-      <article class="stat"><span>合計売上</span><strong id="totalSales">¥0</strong></article>
-      <article class="stat"><span>販売した数</span><strong id="totalSold">0</strong></article>
-      <article class="stat"><span>未告知の完売</span><strong id="unsentSoldout">0</strong></article>
-      <article class="stat"><span>未受け渡しの取り置き</span><strong id="pendingReservations">0</strong></article>
-    </section>
+    <section id="prepView" class="tab-view">
+      <details class="panel prep-details" open>
+        <summary>サークル設定</summary>
+        <div class="form-grid settings-grid details-body">
+          <label>サークル名<input id="circleName" type="text" placeholder="例：わくわく同人屋さん"></label>
+          <label>イベント名<input id="eventName" type="text" placeholder="例：COMIC CITY"></label>
+          <label>スペース番号<input id="spaceNo" type="text" placeholder="例：東1 A-12a"></label>
+        </div>
+      </details>
 
-    <section class="panel">
-      <div class="panel-head"><div><h2>在庫管理</h2><p>販売したら「+1」をタップ。間違えたら「戻す」で在庫を1つ増やせます。</p></div></div>
-      <div id="items" class="items"></div>
-    </section>
+      <details class="panel prep-details" open>
+        <summary>商品登録</summary>
+        <p class="note details-body-note">在庫総数には、通常頒布・取り置き用・通販用・自分用の確保分もすべて含めた数を入力してください。</p>
+        <form id="itemForm" class="form-grid item-form details-body">
+          <label>商品名<input id="itemName" type="text" required placeholder="例：新刊「MECCHA HAPPY BOOK」"></label>
+          <label>価格<input id="itemPrice" type="number" min="0" step="100" inputmode="numeric" required placeholder="550"></label>
+          <label>在庫総数<input id="itemStock" type="number" min="0" step="1" required placeholder="30"></label>
+          <label>通販用に確保しておきたい部数<input id="itemReserveMail" type="number" min="0" step="1" value="0"></label>
+          <label>自分用<input id="itemReserveSelf" type="number" min="0" step="1" value="1"></label>
+          <label>アイコン<select id="itemIcon"><option value="📘">📘 本</option><option value="🎁">🎁 セット</option><option value="🖼️">🖼️ ポストカード</option><option value="✨">✨ グッズ</option><option value="🧸">🧸 ぬい系</option><option value="📦">📦 その他</option></select></label>
+          <label>アイコン背景色<input id="itemColor" type="color" value="#f4eadc"></label>
+          <button type="submit" class="primary">商品を追加</button>
+        </form>
+      </details>
 
-    <section class="panel">
-      <div class="panel-head">
-        <div><h2>レジ</h2><p>頒布する商品の数と、受け取ったお札・硬貨の枚数を入力してください。</p></div>
-        <button id="clearCalcBtn" class="secondary">計算をクリア</button>
-      </div>
-      <div id="calcItems" class="calc-items"></div>
-      <div class="checkout-grid">
-        <article class="checkout-total"><span>頒布価格の合計</span><strong id="calcTotal">¥0</strong></article>
-        <article class="checkout-total"><span>受け取った額の合計</span><strong id="receivedTotal">¥0</strong></article>
-        <article class="checkout-total change"><span>おつり</span><strong id="changeTotal">¥0</strong></article>
-      </div>
-      <div class="cash-grid" id="cashGrid"></div>
-    </section>
+      <details class="panel prep-details" open>
+        <summary>取り置き登録</summary>
+        <p class="note details-body-note">1人につき複数商品をまとめて登録できます。取り置き分は通常頒布の残り在庫から引かれます。</p>
+        <form id="reservationForm" class="reservation-form details-body">
+          <input id="resName" type="text" required placeholder="お名前 / X ID">
+          <div id="reservationItemInputs" class="reservation-item-inputs"></div>
+          <button class="primary" type="submit">取り置きを追加</button>
+        </form>
+      </details>
 
-    <section class="panel">
-      <div class="panel-head"><div><h2>取り置きリスト</h2><p>1人につき複数商品をまとめて登録できます。取り置き分は通常頒布の残り在庫から引かれます。</p></div></div>
-      <form id="reservationForm" class="reservation-form">
-        <input id="resName" type="text" required placeholder="お名前 / X ID">
-        <div id="reservationItemInputs" class="reservation-item-inputs"></div>
-        <button class="primary" type="submit">取り置きを追加</button>
-      </form>
-      <div id="reservations" class="reservations"></div>
+      <details class="panel prep-details">
+        <summary>データ管理</summary>
+        <div class="data-actions details-body">
+          <button id="exportBtn" class="secondary">データを書き出し</button>
+          <label class="import-label">データを読み込み<input id="importFile" type="file" accept="application/json"></label>
+          <button id="resetBtn" class="danger">リセット</button>
+        </div>
+      </details>
     </section>
   </main>
 
@@ -90,7 +106,7 @@
 
   <dialog id="soldoutDialog"><form method="dialog" class="dialog-card"><h2>完売しました</h2><p id="soldoutText"></p><textarea id="tweetText" rows="5"></textarea><div class="dialog-actions"><button id="tweetBtn" value="tweet" class="primary">告知する</button><button id="laterBtn" value="later" class="secondary">後にする</button><button id="noTweetBtn" value="no" class="secondary">告知しない</button></div></form></dialog>
 
-  <dialog id="editItemDialog"><form method="dialog" class="dialog-card" id="editItemForm"><h2>商品を修正</h2><input type="hidden" id="editItemId"><div class="edit-grid"><label>商品名<input id="editItemName" type="text" required></label><label>価格<input id="editItemPrice" type="number" min="0" step="100" required></label><label>在庫総数<input id="editItemStock" type="number" min="0" step="1" required></label><label>通販用<input id="editMailReserve" type="number" min="0" step="1" required></label><label>自分用<input id="editSelfReserve" type="number" min="0" step="1" required></label><label>アイコン<select id="editItemIcon"><option value="📘">📘 本</option><option value="🎁">🎁 セット</option><option value="🖼️">🖼️ ポストカード</option><option value="✨">✨ グッズ</option><option value="🧸">🧸 ぬい系</option><option value="📦">📦 その他</option></select></label><label>アイコン背景色<input id="editItemColor" type="color"></label></div><p class="note">在庫総数より販売済み・取り置き・通販用・自分用の合計が多い場合、通常頒布の残りは0として表示されます。</p><div class="dialog-actions"><button class="primary" type="submit">保存</button><button class="secondary" type="button" onclick="document.querySelector('#editItemDialog').close()">キャンセル</button></div></form></dialog>
+  <dialog id="editItemDialog"><form method="dialog" class="dialog-card" id="editItemForm"><h2>商品を修正</h2><input type="hidden" id="editItemId"><div class="edit-grid"><label>商品名<input id="editItemName" type="text" required></label><label>価格<input id="editItemPrice" type="number" min="0" step="100" required></label><label>在庫総数<input id="editItemStock" type="number" min="0" step="1" required></label><label>通販用に確保しておきたい部数<input id="editMailReserve" type="number" min="0" step="1" required></label><label>自分用<input id="editSelfReserve" type="number" min="0" step="1" required></label><label>アイコン<select id="editItemIcon"><option value="📘">📘 本</option><option value="🎁">🎁 セット</option><option value="🖼️">🖼️ ポストカード</option><option value="✨">✨ グッズ</option><option value="🧸">🧸 ぬい系</option><option value="📦">📦 その他</option></select></label><label>アイコン背景色<input id="editItemColor" type="color"></label></div><p class="note">在庫総数より頒布済み・取り置き・通販用・自分用の合計が多い場合、通常頒布の残りは0として表示されます。</p><div class="dialog-actions"><button class="primary" type="submit">保存</button><button class="secondary" type="button" onclick="document.querySelector('#editItemDialog').close()">キャンセル</button></div></form></dialog>
 
   <dialog id="editReservationDialog"><form method="dialog" class="dialog-card" id="editReservationForm"><h2>取り置きを修正</h2><input type="hidden" id="editResId"><label>お名前 / X ID<input id="editResName" type="text" required></label><div id="editReservationItemInputs" class="reservation-item-inputs edit-res-items"></div><div class="dialog-actions"><button class="primary" type="submit">保存</button><button class="secondary" type="button" onclick="document.querySelector('#editReservationDialog').close()">キャンセル</button></div></form></dialog>
 
