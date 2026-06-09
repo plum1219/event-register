@@ -11,7 +11,7 @@
     <div>
       <p class="eyebrow">Doujin Event Register</p>
       <h1>イベントレジ 試作版 v3</h1>
-      <p class="lead">頒布物の在庫・売上・取り置き・会計をブラウザだけで管理するためのたたき台です。</p>
+      <p class="lead">頒布物の在庫・売上・取り置き・会計を管理できるブラウザツールです。</p>
     </div>
     <div class="header-actions">
       <button id="exportBtn" class="secondary">データを書き出し</button>
@@ -44,7 +44,7 @@
         <label>通販用<input id="itemReserveMail" type="number" min="0" step="1" value="0"></label>
         <label>自分用<input id="itemReserveSelf" type="number" min="0" step="1" value="1"></label>
         <label>アイコン<select id="itemIcon"><option value="📘">📘 本</option><option value="🎁">🎁 セット</option><option value="🖼️">🖼️ ポストカード</option><option value="✨">✨ グッズ</option><option value="🧸">🧸 ぬい</option><option value="📦">📦 その他</option></select></label>
-        <label>アイコン色<input id="itemColor" type="color" value="#f4eadc"></label>
+        <label>アイコン背景色<input id="itemColor" type="color" value="#f4eadc"></label>
         <button type="submit" class="primary">商品を追加</button>
       </form>
     </section>
@@ -57,13 +57,13 @@
     </section>
 
     <section class="panel">
-      <div class="panel-head"><div><h2>レジ</h2><p>「+1」で販売、「戻す」で誤タップを取り消せます。商品は上下ボタンで並び替えできます。</p></div></div>
+      <div class="panel-head"><div><h2>在庫管理</h2><p>販売したら「+1」をタップ。間違えたら「戻す」で在庫を1つ増やせます。</p></div></div>
       <div id="items" class="items"></div>
     </section>
 
     <section class="panel">
       <div class="panel-head">
-        <div><h2>計算用レジ</h2><p>商品ごとの個数と、受け取ったお札・硬貨の枚数を＋−ボタンで入力します。</p></div>
+        <div><h2>レジ</h2><p>頒布する商品の数と、受け取ったお札・硬貨の枚数を入力してください。</p></div>
         <button id="clearCalcBtn" class="secondary">計算をクリア</button>
       </div>
       <div id="calcItems" class="calc-items"></div>
