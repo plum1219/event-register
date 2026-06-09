@@ -59,6 +59,7 @@
     <section id="prepView" class="tab-view">
       <details class="panel prep-details" open>
         <summary>サークル設定</summary>
+        <p class="note details-body-note">入力すると完売告知ツイート文に反映されます。不要な場合は何も入れなくてOKです。</p>
         <div class="form-grid settings-grid details-body">
           <label>サークル名<input id="circleName" type="text" placeholder="例：わくわく同人屋さん"></label>
           <label>イベント名<input id="eventName" type="text" placeholder="例：COMIC CITY"></label>
@@ -93,6 +94,9 @@
 
       <details class="panel prep-details">
         <summary>データ管理</summary>
+        <p class="note details-body-note">入力したデータのバックアップをダウンロードできます。<br>
+          復元したいときは、ダウンロードした「event-register-○○○○.json」という名前のファイルを「データを読み込み」ボタンからアップロードしてください。<br>
+        「リセット」ボタンを押すとすべての入力データが削除されます。</p>
         <div class="data-actions details-body">
           <button id="exportBtn" class="secondary">データを書き出し</button>
           <label class="import-label">データを読み込み<input id="importFile" type="file" accept="application/json"></label>
