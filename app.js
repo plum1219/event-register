@@ -16,6 +16,69 @@ let state = loadState();
 const reservationInputState = { new: {}, edit: {} };
 let currentSoldoutItemId = null;
 
+const HELP_CONTENT = {
+  circleName: {
+    title: "サークル名",
+    body: ["イベントに参加するサークル名を入力します。", "完売告知文を作るとき、ハッシュタグとして反映されます。空欄でも在庫や会計の計算には影響しません。"]
+  },
+  eventName: {
+    title: "イベント名",
+    body: ["参加するイベント名を入力します。", "完売告知文の先頭に表示され、どのイベントでの告知か分かるようになります。空欄でも在庫や会計の計算には影響しません。"]
+  },
+  spaceNo: {
+    title: "スペース番号",
+    body: ["当日の配置スペースを入力します。", "完売告知文にスペース情報として反映されます。空欄でも在庫や会計の計算には影響しません。"]
+  },
+  itemName: {
+    title: "商品名",
+    body: ["頒布する本・グッズ・セットなどの名前を入力します。", "在庫カード、レジ、取り置きリスト、完売告知文に表示されます。"]
+  },
+  itemPrice: {
+    title: "価格",
+    body: ["1点あたりの頒布価格を円で入力します。", "レジで数量を選んだときの合計金額、売上合計、取り置き合計の計算に使われます。"]
+  },
+  itemStock: {
+    title: "在庫総数",
+    body: ["当日に持ち込む総数を入力します。通常頒布分だけでなく、取り置き・通販用・自分用も含めた数です。", "イベント中の残り部数は「在庫総数 − 頒布済み − 取り置き − 通販用 − 自分用」で計算されます。"]
+  },
+  itemReserveMail: {
+    title: "通販用に確保しておきたい部数",
+    body: ["イベント後の通販などに残しておきたい数を入力します。", "通常頒布の残り部数から差し引かれます。"]
+  },
+  itemReserveSelf: {
+    title: "自分用",
+    body: ["見本・保存用など、自分の手元に残す数を入力します。", "通常頒布の残り部数から差し引かれます。"]
+  },
+  itemIcon: {
+    title: "アイコン",
+    body: ["商品を見分けやすくするためのアイコンを選びます。", "在庫カード、レジ、取り置き入力、取り置きリストに表示されます。計算には影響しません。"]
+  },
+  itemColor: {
+    title: "アイコン背景色",
+    body: ["商品のアイコンに付ける背景色を選びます。", "在庫カード、レジ、取り置き入力で商品を見分けやすくするために使われます。計算には影響しません。"]
+  },
+  resName: {
+    title: "お名前 / X ID",
+    body: ["取り置きする相手の名前やX IDを入力します。", "取り置きリストに表示され、チェックを入れると受け渡し済みとして下に移動します。"]
+  },
+  reservationItems: {
+    title: "取り置きする商品",
+    body: ["相手に取り置きする商品の数量を、商品ごとに入力します。", "入力した数は通常頒布の残り部数から差し引かれます。「会計へ」を押すとレジの商品数に反映されます。"]
+  }
+};
+
+const HELP_ALIASES = {
+  editItemName: "itemName",
+  editItemPrice: "itemPrice",
+  editItemStock: "itemStock",
+  editMailReserve: "itemReserveMail",
+  editSelfReserve: "itemReserveSelf",
+  editItemIcon: "itemIcon",
+  editItemColor: "itemColor",
+  editResName: "resName",
+  editReservationItems: "reservationItems"
+};
+
 const el = {
   circleName: document.querySelector("#circleName"), eventName: document.querySelector("#eventName"), spaceNo: document.querySelector("#spaceNo"),
   itemForm: document.querySelector("#itemForm"), itemName: document.querySelector("#itemName"), itemPrice: document.querySelector("#itemPrice"), itemStock: document.querySelector("#itemStock"), itemReserveMail: document.querySelector("#itemReserveMail"), itemReserveSelf: document.querySelector("#itemReserveSelf"), itemIcon: document.querySelector("#itemIcon"), itemColor: document.querySelector("#itemColor"),
@@ -56,6 +119,76 @@ function yen(num) { return new Intl.NumberFormat("ja-JP", { style: "currency", c
 function toast(message) { el.toast.textContent = message; el.toast.classList.remove("hidden"); setTimeout(() => el.toast.classList.add("hidden"), 2200); }
 function escapeHtml(value) { return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;"); }
 function escapeAttr(value) { return escapeHtml(value).replaceAll(";", ""); }
+function helpContentFor(id) { return HELP_CONTENT[HELP_ALIASES[id] || id]; }
+function ensureHelpDialog() {
+  let dialog = document.querySelector("#helpDialog");
+  if (dialog) return dialog;
+  dialog = document.createElement("dialog");
+  dialog.id = "helpDialog";
+  dialog.innerHTML = `<form method="dialog" class="dialog-card help-dialog-card"><h2 id="helpTitle"></h2><div id="helpBody" class="help-body"></div><div class="dialog-actions"><button class="primary" type="submit">閉じる</button></div></form>`;
+  document.body.append(dialog);
+  return dialog;
+}
+function openHelp(id) {
+  const help = helpContentFor(id);
+  if (!help) return;
+  const dialog = ensureHelpDialog();
+  dialog.querySelector("#helpTitle").textContent = help.title;
+  dialog.querySelector("#helpBody").innerHTML = help.body.map(line => `<p>${escapeHtml(line)}</p>`).join("");
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else alert(`${help.title}\n\n${help.body.join("\n")}`);
+}
+function makeHelpButton(id) {
+  const help = helpContentFor(id);
+  if (!help) return null;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "help-btn";
+  button.textContent = "?";
+  button.setAttribute("aria-label", `${help.title}の説明`);
+  button.addEventListener("click", event => { event.preventDefault(); event.stopPropagation(); openHelp(id); });
+  return button;
+}
+function attachHelpButton(inputId, helpId = inputId) {
+  const input = document.querySelector(`#${inputId}`);
+  if (!input || input.dataset.helpAttached) return;
+  const button = makeHelpButton(helpId);
+  if (!button) return;
+  const label = input.parentElement?.tagName === "LABEL" ? input.parentElement : null;
+  if (label) {
+    label.classList.add("has-help");
+    label.append(button);
+  } else {
+    const wrapper = document.createElement("div");
+    wrapper.className = "input-help-wrap";
+    input.before(wrapper);
+    wrapper.append(input, button);
+  }
+  input.dataset.helpAttached = "true";
+}
+function attachHelpRow(beforeId, helpId, label) {
+  const target = document.querySelector(`#${beforeId}`);
+  if (!target || document.querySelector(`[data-help-row="${beforeId}"]`)) return;
+  const button = makeHelpButton(helpId);
+  if (!button) return;
+  const row = document.createElement("div");
+  row.className = "help-row";
+  row.dataset.helpRow = beforeId;
+  row.innerHTML = `<span>${escapeHtml(label)}</span>`;
+  row.append(button);
+  target.before(row);
+}
+function initHelpButtons() {
+  ["circleName", "eventName", "spaceNo", "itemName", "itemPrice", "itemStock", "itemReserveMail", "itemReserveSelf", "itemIcon", "itemColor", "editItemName", "editItemPrice", "editItemStock", "editMailReserve", "editSelfReserve", "editItemIcon", "editItemColor", "resName", "editResName"].forEach(id => attachHelpButton(id));
+  attachHelpRow("reservationItemInputs", "reservationItems", "取り置きする商品");
+  attachHelpRow("editReservationItemInputs", "editReservationItems", "取り置きする商品");
+}
+function showPrepWarning() {
+  const dialog = document.querySelector("#prepWarningDialog");
+  if (!dialog) return;
+  if (typeof dialog.showModal === "function") dialog.showModal();
+  else alert("必ずイベント当日と同じ端末・ブラウザから登録してください。");
+}
 function getDistributed(item) { return Number(item.distributed ?? item.sold ?? 0); }
 function setDistributed(item, value) { item.distributed = Math.max(0, Number(value || 0)); item.sold = item.distributed; }
 
@@ -152,7 +285,7 @@ el.editItemForm.addEventListener("submit", e => { e.preventDefault(); const item
 el.resForm.addEventListener("submit", e => { e.preventDefault(); const lines = Object.entries(reservationInputState.new).map(([itemId, qty]) => ({ itemId, qty: Number(qty || 0) })).filter(line => line.qty > 0); if (!lines.length) return alert("取り置きする商品を1点以上選んでください。"); state.reservations.push({ id: crypto.randomUUID(), name: el.resName.value.trim(), lines, done: false }); el.resName.value = ""; reservationInputState.new = {}; toast("取り置きを追加しました"); render(); });
 el.editReservationForm.addEventListener("submit", e => { e.preventDefault(); const res = state.reservations.find(res => res.id === el.editResId.value); if (!res) return; const lines = Object.entries(reservationInputState.edit).map(([itemId, qty]) => ({ itemId, qty: Number(qty || 0) })).filter(line => line.qty > 0); if (!lines.length) return alert("取り置きする商品を1点以上選んでください。"); res.name = el.editResName.value.trim(); res.lines = lines; el.editReservationDialog.close(); toast("取り置きを修正しました"); render(); });
 ["circleName", "eventName", "spaceNo"].forEach(key => el[key].addEventListener("input", () => { state.settings[key] = el[key].value; render(); }));
-document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".tab-btn,.tab-view").forEach(node => node.classList.remove("active")); btn.classList.add("active"); document.querySelector(btn.dataset.tab === "event" ? "#eventView" : "#prepView").classList.add("active"); }));
+document.querySelectorAll(".tab-btn").forEach(btn => btn.addEventListener("click", () => { document.querySelectorAll(".tab-btn,.tab-view").forEach(node => node.classList.remove("active")); btn.classList.add("active"); document.querySelector(btn.dataset.tab === "event" ? "#eventView" : "#prepView").classList.add("active"); if (btn.dataset.tab === "prep") showPrepWarning(); }));
 el.tweetBtn.addEventListener("click", e => { e.preventDefault(); const url = new URL("https://twitter.com/intent/tweet"); url.searchParams.set("text", el.tweetText.value); window.open(url.toString(), "_blank", "noopener,noreferrer"); markSoldoutNotice("sent"); el.soldoutDialog.close(); });
 el.laterBtn.addEventListener("click", () => markSoldoutNotice("later")); el.noTweetBtn.addEventListener("click", () => markSoldoutNotice("no"));
 el.clearCalcBtn.addEventListener("click", clearCalc); el.applyCalcBtn.addEventListener("click", applyCalcToStock);
@@ -160,5 +293,6 @@ el.exportBtn.addEventListener("click", () => { const blob = new Blob([JSON.strin
 el.importFile.addEventListener("change", async e => { const file = e.target.files[0]; if (!file) return; try { const imported = migrateState(JSON.parse(await file.text())); if (!Array.isArray(imported.items)) throw new Error("invalid"); state = imported; toast("データを読み込みました"); render(); } catch { alert("読み込みに失敗しました。書き出したJSONファイルを選択してください。"); } finally { el.importFile.value = ""; } });
 el.resetBtn.addEventListener("click", () => { if (!confirm("すべてのデータを初期状態に戻しますか？")) return; localStorage.removeItem(STORAGE_KEY); state = structuredClone(defaultState); reservationInputState.new = {}; reservationInputState.edit = {}; render(); });
 
-Object.assign(window, { distributeItem, undoDistribute, deleteItem, openSoldoutNotice, toggleReservation, deleteReservation, moveItem, editItem, changeCalcQty, changeCashQty, loadReservationToCalc, editReservation, changeReservationInputQty });
+Object.assign(window, { distributeItem, undoDistribute, deleteItem, openSoldoutNotice, toggleReservation, deleteReservation, moveItem, editItem, changeCalcQty, changeCashQty, loadReservationToCalc, editReservation, changeReservationInputQty, openHelp });
+initHelpButtons();
 render();
